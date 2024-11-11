@@ -8,25 +8,34 @@ export default class GameScene extends Phaser.Scene {
         this.score = 0;
         this.shields = 0;
         this.speedBoosts = 0;
-        this.scoreText; // Add a score text variable
+        this.scoreText;
+        this.backgroundMusic;  // For background music
+        this.isMovingSideways = false;  // Track if already moving sideways
     }
 
     preload() {
-        // Load assets (images, sprites)
-        this.load.image('background', '/background.png'); // Update with the correct path
-        this.load.image('gameOver', '/gameover.png'); // Update with the correct path
-        this.load.image('meteor', '/meteor.png'); 
+        // Load assets (images, sprites, and sounds)
+        this.load.image('background', '/background.png');
+        this.load.image('gameOver', '/gameover.png');
+        this.load.image('meteor', '/meteor.png');
         this.load.image('energyOrb', '/energyOrb.png');
         this.load.spritesheet("spaceship", "/spaceship.png", {
             frameWidth: 64,
             frameHeight: 64,
         });
+
+        // Load audio files
+        this.load.audio('backgroundMusic', '/backgroundMusic.mp3');  // Background music
+        this.load.audio('collectOrb', '/collectOrb.mp3');  // Sound for collecting orbs
+        this.load.audio('meteorHit', '/meteorHit.mp3');  // Sound for meteor collision
+        this.load.audio('woosh', '/woosh.mp3');  // Sound for sideways movement
         console.log('Assets loaded');
     }
 
     create() {
         // Add the background
-        this.add.image(400, 300, 'background').setOrigin(0.5, 0.5); // Adjust positioning as needed
+        this.add.image(400, 300, 'background').setOrigin(0.5, 0.5);
+
         // Create player spaceship
         this.player = this.physics.add.sprite(375, 500, 'spaceship');
         this.player.body.allowGravity = false;
@@ -39,12 +48,21 @@ export default class GameScene extends Phaser.Scene {
         // Set up keyboard controls
         this.cursors = this.input.keyboard.createCursorKeys();
 
-        // Initialize the score text in the top left corner
+        // Initialize the score text
         this.scoreText = this.add.text(16, 16, 'Score: 0', {
-            fontFamily: '"Press Start 2P", cursive',
             fontSize: '32px',
             fill: '#FDFD96'
         });
+
+        // Play background music (looping)
+        this.backgroundMusic = this.sound.add('backgroundMusic');
+        this.backgroundMusic.play({
+            loop: true,  // Loops the background music
+            volume: 0.2  // You can adjust the volume here (range 0 to 1)
+        });
+
+        // Woosh sound
+        this.wooshSound = this.sound.add('woosh', { volume: 0.5 });
 
         // Spawn meteors and energy orbs
         this.time.addEvent({
@@ -70,7 +88,7 @@ export default class GameScene extends Phaser.Scene {
             key: 'left',
             frames: this.anims.generateFrameNumbers('spaceship', { start: 4, end: 2 }),
             frameRate: 5,
-            repeat: 0 // Play once, no repeat
+            repeat: 0  // Play once, no repeat
         });
 
         this.anims.create({
@@ -84,50 +102,35 @@ export default class GameScene extends Phaser.Scene {
             key: 'right',
             frames: this.anims.generateFrameNumbers('spaceship', { start: 4, end: 6 }),
             frameRate: 5,
-            repeat: 0 
+            repeat: 0
         });
     }
 
     update() {
-        // Check if moving left
+        // Movement logic
         if (this.cursors.left.isDown) {
             this.player.setVelocityX(-200);
-
-
-            // Play 'left' animation only if not currently playing
-            // Play the 'left' animation only if it’s not currently playing
-            if (this.player.anims.currentAnim?.key !== 'left') {
-                this.player.anims.play('left'); // Play 'left' animation without looping
+            if (!this.isMovingSideways) {
+                this.wooshSound.play(); // Play woosh sound on first left/right press
+                this.isMovingSideways = true;
             }
-
-            // After the animation completes, hold on the last frame
-            if (!this.player.anims.isPlaying && this.player.anims.currentAnim?.key === 'left') {
-                this.player.setFrame(0); // Set to the last frame of 'left' animation
-            }
-
+            this.player.anims.play('left', true);
         } else if (this.cursors.right.isDown) {
             this.player.setVelocityX(200);
-
-            // Play the 'right' animation only if it’s not currently playing
-            if (this.player.anims.currentAnim?.key !== 'right') {
-                this.player.anims.play('right'); // Play 'right' animation without looping
+            if (!this.isMovingSideways) {
+                this.wooshSound.play();
+                this.isMovingSideways = true;
             }
-
-            // After the animation completes, hold on the last frame
-            if (!this.player.anims.isPlaying && this.player.anims.currentAnim?.key === 'right') {
-                this.player.setFrame(8); // Set to the last frame of 'right' animation
-            }
+            this.player.anims.play('right', true);
         } else {
-            // If no horizontal input, set velocity to 0
             this.player.setVelocityX(0);
-
-            // Play idle animation if not already playing
-            if (this.player.anims.currentAnim?.key !== 'turn') {
-                this.player.anims.play('turn');
+            if (this.isMovingSideways) {
+                this.isMovingSideways = false; // Reset sideways movement state
             }
+            this.player.anims.play('turn', true);
         }
 
-        // Handle vertical movement (no animation for up/down movement)
+        // Vertical movement
         if (this.cursors.up.isDown) {
             this.player.setVelocityY(-200);
         } else if (this.cursors.down.isDown) {
@@ -137,18 +140,21 @@ export default class GameScene extends Phaser.Scene {
         }
     }
 
+    // Stop background music when the scene is stopped or changed
+    stopBackgroundMusic() {
+        if (this.backgroundMusic && this.backgroundMusic.isPlaying) {
+            this.backgroundMusic.stop();
+        }
+    }
 
-
-
-
-
-
+    // Spawn meteor at random positions
     spawnMeteor() {
         const x = Phaser.Math.Between(0, this.game.config.width);
         const meteor = this.meteors.create(x, 0, 'meteor');
         meteor.setVelocityY(Phaser.Math.Between(100, 300));
     }
 
+    // Spawn energy orb at random positions
     spawnEnergyOrb() {
         const x = Phaser.Math.Between(800, 1200);
         const y = Phaser.Math.Between(50, 550);
@@ -156,17 +162,27 @@ export default class GameScene extends Phaser.Scene {
         energyOrb.setVelocityX(-100);
     }
 
+    // Handle player hitting a meteor
     handlePlayerHit(player, meteor) {
         meteor.destroy();
+        this.stopBackgroundMusic();  // Stop the background music when game ends
         this.scene.start('GameOverScene', { score: this.score });
+
+        // Play meteor hit sound
+        this.sound.play('meteorHit', { volume: 0.7 });
     }
 
+    // Handle collecting an energy orb
     collectEnergyOrb(player, orb) {
         orb.destroy();
         this.score += 10;
-        this.scoreText.setText('Score: ' + this.score); // Update the score text
+        this.scoreText.setText('Score: ' + this.score);
+
+        // Play orb collecting sound
+        this.sound.play('collectOrb', { volume: 0.5 });
     }
 
+    // Increase difficulty by modifying meteor velocities
     increaseDifficulty() {
         this.meteors.children.iterate((meteor) => {
             meteor.setVelocityY(meteor.body.velocity.y + 1);
