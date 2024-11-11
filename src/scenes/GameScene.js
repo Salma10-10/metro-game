@@ -13,19 +13,22 @@ export default class GameScene extends Phaser.Scene {
 
     preload() {
         // Load assets (images, sprites)
-        this.load.image('meteor', '/meteor.png'); // Path to your meteor image
-        this.load.image('energyOrb', '/energyOrb.png'); // Path to your energy orb image
+        this.load.image('background', '/background.png'); // Update with the correct path
+        this.load.image('gameOver', '/gameover.png'); // Update with the correct path
+        this.load.image('meteor', '/meteor.png'); 
+        this.load.image('energyOrb', '/energyOrb.png');
         this.load.spritesheet("spaceship", "/spaceship.png", {
             frameWidth: 64,
             frameHeight: 64,
         });
-
         console.log('Assets loaded');
     }
 
     create() {
+        // Add the background
+        this.add.image(400, 300, 'background').setOrigin(0.5, 0.5); // Adjust positioning as needed
         // Create player spaceship
-        this.player = this.physics.add.sprite(100, 300, 'spaceship');
+        this.player = this.physics.add.sprite(375, 500, 'spaceship');
         this.player.body.allowGravity = false;
         this.player.setCollideWorldBounds(true);
 
@@ -38,8 +41,9 @@ export default class GameScene extends Phaser.Scene {
 
         // Initialize the score text in the top left corner
         this.scoreText = this.add.text(16, 16, 'Score: 0', {
+            fontFamily: '"Press Start 2P", cursive',
             fontSize: '32px',
-            fill: '#ffffff'
+            fill: '#FDFD96'
         });
 
         // Spawn meteors and energy orbs
@@ -80,7 +84,7 @@ export default class GameScene extends Phaser.Scene {
             key: 'right',
             frames: this.anims.generateFrameNumbers('spaceship', { start: 4, end: 6 }),
             frameRate: 5,
-            repeat: 0 // Play once, no repeat
+            repeat: 0 
         });
     }
 
@@ -88,6 +92,7 @@ export default class GameScene extends Phaser.Scene {
         // Check if moving left
         if (this.cursors.left.isDown) {
             this.player.setVelocityX(-200);
+
 
             // Play 'left' animation only if not currently playing
             // Play the 'left' animation only if it’s not currently playing
