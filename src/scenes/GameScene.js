@@ -1,5 +1,3 @@
-import MainMenuScene from "./MainMenuScene.js";
-
 export default class GameScene extends Phaser.Scene {
   constructor() {
     super({ key: "GameScene" });
@@ -68,7 +66,7 @@ export default class GameScene extends Phaser.Scene {
     );
 
     // Initialize the score text
-    this.scoreText = this.add.text(16, 16, "Score: 0", {
+    this.scoreText = this.add.text(16, 16, "Score:0", {
       fontSize: "32px",
       fill: "#FDFD96",
     });
@@ -275,31 +273,40 @@ export default class GameScene extends Phaser.Scene {
   }
 
   // Handle collecting a shield power-up
-  collectShieldPowerUp(shieldPowerUp) {
+collectShieldPowerUp(player, shieldPowerUp) {
+  if (shieldPowerUp) {
     shieldPowerUp.destroy();
-    this.isShieldActive = true;
+  }
+  // Activate the shield
+  this.isShieldActive = true;
+
+  if (this.shieldGraphics) {
     this.shieldGraphics.setVisible(true);
+    this.shieldGraphics.setPosition(this.player.x, this.player.y);
+  }
 
-    // Deactivate shield after 5 seconds
-    this.time.delayedCall(5000, () => {
+  // Schedule deactivation of the shield
+  this.time.delayedCall(5000, () => {
+    if (this.isShieldActive) {
       this.isShieldActive = false;
-      this.shieldGraphics.setVisible(false);
-    });
+      if (this.shieldGraphics) {
+        this.shieldGraphics.setVisible(false);
+      }
+    }
+  });
 
-    // Play shield collecting sound
+  // Play sound effect
+  if (this.sound) {
     this.sound.play("collectOrb", { volume: 0.5 });
   }
+}
 
   // Increase difficulty by modifying meteor velocities and spawn rates
   increaseDifficulty() {
     console.log("Increasing difficulty");
 
     this.meteors.children.iterate((meteor) => {
-      meteor.setVelocityY(meteor.body.velocity.y + 2);
-      meteor.setVelocityX(meteor.body.velocity.x + 2);
-      console.log(
-        `Meteor velocity: ${meteor.body.velocity.y}, ${meteor.body.velocity.x}`
-      );
+      meteor.setVelocityY(meteor.body.velocity.y + 3);
     });
   }
 }
